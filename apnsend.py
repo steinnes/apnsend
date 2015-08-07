@@ -4,20 +4,27 @@ import click
 import socket
 import struct
 
+import OpenSSL
 from OpenSSL import SSL, crypto
 
 
 def encode_notification(token, notification):
     notification = json.dumps(notification, ensure_ascii=False).encode('utf-8')
     wire_format = "!BH32sH%ds" % len(notification)
-    packed = struct.pack(wire_format, 0, 32, token.decode('hex'), len(notification), notification)
+    packed = struct.pack(
+        wire_format,
+        0,
+        32,
+        token.decode('hex'),
+        len(notification),
+        notification)
     return packed
 
 
 def send(ctx, notification):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(5)
-    connection = SSL.Connection(ctx,sock)
+    connection = SSL.Connection(ctx, sock)
     connection.connect(("gateway.sandbox.push.apple.com", 2195))
     connection.setblocking(1)
 
@@ -27,18 +34,22 @@ def send(ctx, notification):
         print "Timeout"
         sys.exit(1)
 
+    expected = len(notification)
     sent = connection.send(notification)
-    if sent < len(notification):
-        print "Whoops, notification len=%d sent=%d\n" % (len(notification), sent)
+    if sent < expected:
+        print "Whoops, notification len=%d sent=%d\n" % (expected, sent)
     else:
         print "Looks like everything got sent!"
+
 
 @click.command()
 @click.argument('pem_file')
 @click.argument('token')
 @click.argument('message')
 def main(pem_file, token, message):
-    notification = encode_notification(token, {'aps':{'alert': message, 'sound': 'default'}})
+    notification = encode_notification(
+        token, {'aps': {'alert': message, 'sound': 'default'}}
+    )
 
     with open(pem_file) as f:
         pem_file_data = f.read()

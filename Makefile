@@ -10,3 +10,6 @@ clean:
 	rm -rf venv
 	find . -name \*.pyc -exec rm '{}' ';'
 	rm -rf *.egg-info
+
+lint:
+	flake8 apnsend.py
