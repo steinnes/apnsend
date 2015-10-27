@@ -21,11 +21,11 @@ def encode_notification(token, notification):
     return packed
 
 
-def send(ctx, notification):
+def send(ctx, host, notification):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(5)
     connection = SSL.Connection(ctx, sock)
-    connection.connect(("gateway.sandbox.push.apple.com", 2195))
+    connection.connect((host, 2195))
     connection.setblocking(1)
 
     try:
@@ -46,7 +46,10 @@ def send(ctx, notification):
 @click.argument('pem_file')
 @click.argument('token')
 @click.argument('message')
-def main(pem_file, token, message):
+@click.option('--sandbox', '-s', default=False, is_flag=True)
+def main(pem_file, token, message, sandbox):
+    host = "gateway.push.apple.com" if not sandbox else "gateway.sandbox.push.apple.com"
+
     notification = encode_notification(
         token, {'aps': {'alert': message, 'sound': 'default'}}
     )
@@ -60,7 +63,7 @@ def main(pem_file, token, message):
         ssl_ctx.use_certificate(cert)
         ssl_ctx.use_privatekey(pkey)
 
-        send(ssl_ctx, notification)
+        send(ssl_ctx, host, notification)
 
 
 if __name__ == "__main__":
